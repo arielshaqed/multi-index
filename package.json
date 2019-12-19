@@ -3,9 +3,19 @@
   "version": "0.0.1",
   "description": "Multiple indexes on a single collection of objects",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "ava dist/test/**.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/binaris/multi-index.git"
   },
   "keywords": [
     "multi_index",
@@ -17,6 +27,9 @@
   ],
   "author": "Ariel Shaqed (Scolnicov)",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/binaris/multi-index/issues"
+  },
   "dependencies": {
     "ramda": "^0.26.1"
   },
