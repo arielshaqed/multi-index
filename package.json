@@ -28,6 +28,9 @@
   ],
   "author": "Ariel Shaqed (Scolnicov)",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/binaris/multi-index/issues"
+  },
   "dependencies": {
     "ramda": "^0.26.1"
   },
