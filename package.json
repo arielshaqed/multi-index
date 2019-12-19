@@ -1,0 +1,29 @@
+{
+  "name": "multi-index",
+  "version": "0.0.1",
+  "description": "Multiple indexes on a single collection of objects",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "ava dist/test/**.js"
+  },
+  "keywords": [
+    "multi_index",
+    "multiple-indices",
+    "indices",
+    "multi",
+    "index",
+    "map"
+  ],
+  "author": "Ariel Shaqed (Scolnicov)",
+  "license": "MIT",
+  "dependencies": {
+    "ramda": "^0.26.1"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.21",
+    "@types/ramda": "^0.26.38",
+    "ava": "^2.4.0",
+    "typescript": "^3.7.3"
+  }
+}
