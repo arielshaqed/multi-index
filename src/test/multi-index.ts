@@ -8,14 +8,23 @@ interface Obj {
 }
 
 const indexTypes = {
-  num: { getter: ({ n }: Obj) => n, unique: true },
-  str: { getter: ({ s }: Obj) => s },
+  str: { getter: ({ s }: Obj) => s, type: 'string' as const },
+  num: { getter: ({ n }: Obj) => n, unique: true, type: 'number' as const },
+};
+
+// Compilation test
+(m: MultiIndex<Obj>) => {
+  const sui: ReadonlyMap<string, Obj> = m.by('str', true, 'string');
+  const smi: ReadonlyMap<string, ReadonlySet<Obj>> = m.by('xyzzy', false, 'string');
+  const nui: ReadonlyMap<number, Obj> = m.by('quux', true, 'number');
+  const nmi: ReadonlyMap<number, ReadonlySet<Obj>> = m.by('num', false, 'number');
+  return [sui, smi, nui, nmi];
 };
 
 test('MultiIndex adds and looks up unique', (t) => {
   const mi = new MultiIndex<Obj>(indexTypes);
   mi.add({ n: 1, s: 'a' });
-  t.deepEqual(mi.by('num').get(1), { n: 1, s: 'a' });
+  t.deepEqual(mi.by('num', true, 'number').get(1), { n: 1, s: 'a' });
 });
 
 test('MultiIndex adds and looks up nonunique', (t) => {

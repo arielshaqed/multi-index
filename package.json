@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "name": "multi-index",
   "version": "0.0.1",
   "description": "Multiple indexes on a single collection of objects",
@@ -12,21 +11,13 @@
   ],
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "test": "ava dist/test/**.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/binaris/multi-index.git"
   },
-=======
-  "name": "indexed",
-  "version": "0.0.1",
-  "description": "Multiple indexes on the same objects",
-  "main": "dist/index.js",
-  "scripts": {
-    "test": "ava dist/test/**.js"
-  },
->>>>>>> Initial commit: working tested multi-index
   "keywords": [
     "multi_index",
     "multiple-indices",
@@ -37,21 +28,14 @@
   ],
   "author": "Ariel Shaqed (Scolnicov)",
   "license": "MIT",
-<<<<<<< HEAD
   "bugs": {
     "url": "https://github.com/binaris/multi-index/issues"
   },
-=======
->>>>>>> Initial commit: working tested multi-index
   "dependencies": {
     "ramda": "^0.26.1"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "@types/node": "^12.12.21",
-=======
-    "@types/node": "^12.12.20",
->>>>>>> Initial commit: working tested multi-index
     "@types/ramda": "^0.26.38",
     "ava": "^2.4.0",
     "typescript": "^3.7.3"
