@@ -1,6 +1,6 @@
 {
   "name": "multi-index",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Multiple indexes on a single collection of objects",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,12 +31,9 @@
   "bugs": {
     "url": "https://github.com/binaris/multi-index/issues"
   },
-  "dependencies": {
-    "ramda": "^0.26.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^12.12.21",
-    "@types/ramda": "^0.26.38",
     "ava": "^2.4.0",
     "typescript": "^3.7.3"
   }
