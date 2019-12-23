@@ -11,12 +11,12 @@ export class NonuniqueIndexError extends Error {
 
 export type ScalarTypeName = 'string' | 'number';
 
-interface NumberIndexType<T> {
+export interface NumberIndexType<T> {
   getter: (t: T) => number;
   type: 'number';
 }
 
-interface StringIndexType<T> {
+export interface StringIndexType<T> {
   getter: (t: T) => string;
   type?: 'string';        // (default).
 }
@@ -30,13 +30,13 @@ type UniqueMap<T> = Map<Scalar, T>;
 type MultiMap<T> = Map<Scalar, Set<T>>;
 
 interface Access<T> {
-  access: { u?: UniqueMap<T>, m?: MultiMap<T> };
+  access: UniqueMap<T> | MultiMap<T>;
 }
 
 type Index<T> = IndexType<T> & Access<T>;
 
 export class MultiIndex<T> {
-  private readonly objects = new Set<any>(); // TODO(ariels): for iteration
+  private readonly objects = new Set<T>(); // TODO(ariels): for iteration
   private readonly index: Map<string, Index<T>>;
   public readonly access = {
     // Keys: s/n string/number, 1/9 unique/nonunique
@@ -52,7 +52,7 @@ export class MultiIndex<T> {
         (it) => ({
           ...it,
           type: it.type || 'string',
-          access: it.unique ? { u: new Map() } : { m: new Map() },
+          access: new Map(),
         }),
         indexTypes,
       )));
@@ -60,16 +60,16 @@ export class MultiIndex<T> {
       switch (i.type) {
       case 'string': case undefined:
         if (i.unique) {
-          this.access.s1.set(k, i.access.u! as Map<string, T>);
+          this.access.s1.set(k, i.access as Map<string, T>);
         } else {
-          this.access.s9.set(k, i.access.m! as Map<string, Set<T>>);
+          this.access.s9.set(k, i.access as Map<string, Set<T>>);
         }
         break;
       case 'number':
         if (i.unique) {
-          this.access.n1.set(k, i.access.u! as Map<number, T>);
+          this.access.n1.set(k, i.access as Map<number, T>);
         } else {
-          this.access.n9.set(k, i.access.m! as Map<number, Set<T>>);
+          this.access.n9.set(k, i.access as Map<number, Set<T>>);
         }
       }
     }
@@ -88,10 +88,10 @@ export class MultiIndex<T> {
     this.forEachIndex(
       (index, ik) => {
         const k = index.getter(o);
-        if (index.unique && index.access.u!.has(k)) {
+        if (index.unique && index.access.has(k)) {
           throw new NonuniqueIndexError(o, k, ik);
         }
-        if (!index.unique && !index.access.m!.has(k)) index.access.m!.set(k, new Set());
+        if (!index.unique && !index.access.has(k)) (index.access as MultiMap<T>).set(k, new Set());
       }
     );
   }
@@ -103,17 +103,17 @@ export class MultiIndex<T> {
         if (typeof ik === 'number') return;
         const k = index.getter(o);
         if (index.unique) {
-          if (!index.access.u!.has(k)) {
+          if (!index.access.has(k)) {
             throw new Error(`Internal: No key ${k} found on index ${ik}`);
           }
-          if (!Object.is(index.access.u!.get(k), o)) {
+          if (!Object.is(index.access.get(k), o)) {
             throw new Error(`Internal: Mismatched objects for key ${ik} on index ${ik}`);
           }
         } else {
-          if (!(index.access.m!.has(k))) {
+          if (!(index.access.has(k))) {
             throw new Error(`Internal: No key ${k} found on index ${ik}`);
           }
-          if (!index.access.m!.get(k)!.has(o)) {
+          if (!(index.access.get(k) as Set<T>)!.has(o)) {
             throw new Error(`Internal: Mismatched objects for key ${ik} on index ${ik}`);
           }
         }
@@ -133,10 +133,10 @@ export class MultiIndex<T> {
     this.forEachIndex((index) => {
       const k = index.getter(o);
       if (index.unique) {
-        index.access.u!.set(k, o);
+        (index.access as UniqueMap<T>).set(k, o);
         return;
       }
-      index.access.m!.get(k)?.add(o);
+      (index.access as MultiMap<T>).get(k)?.add(o);
     });
     
     this.objects.add(o);
@@ -151,12 +151,12 @@ export class MultiIndex<T> {
     this.forEachIndex((index) => {
       const k = index.getter(o);
       if (index.unique) {
-        index.access.u!.delete(k);
+        index.access.delete(k);
         return;
       }
-      const s = index.access.m!.get(k);
+      const s = index.access.get(k)! as Set<T>;
       s!.delete(o);
-      if (s!.size === 0) index.access.m!.delete(k);
+      if (s!.size === 0) index.access.delete(k);
     });
     this.objects.delete(o);
   }
@@ -182,6 +182,6 @@ export class MultiIndex<T> {
     if (typeName !== undefined && typeName !== index.type) {
       throw new Error(`Expected ${typeName} index ${ik}`);
     }
-    return index!.unique ? index!.access.u! : index!.access.m!;
+    return index!.unique ? index!.access : index!.access;
   }
 }
