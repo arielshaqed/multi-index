@@ -79,6 +79,9 @@ byNickname.get('joe');  // returns Set([{ id: 23, name: 'Joseph', nickname: 'joe
 
 # Related projects
 
+* [indexify](https://www.npmjs.com/package/indexify): A similar
+  lightweight package, supports containers with multiple indexes.  API
+  is not type-safe for TypeScript.  Less extensible.
 * [bimap](https://www.npmjs.com/package/bimap): A specific container
   with 2 indices.  You could implement a bidirectional map using a
   multi-index container.
