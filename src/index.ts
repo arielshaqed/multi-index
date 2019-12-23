@@ -123,29 +123,29 @@ export function nonuniqueIndex<T, K extends string | number>(
 
 export class Container<T> {
   private readonly objects = new Set<T>();
-  private readonly index: Array<IndexKeeper<T>> = [];
+  private readonly indices: Array<IndexKeeper<T>> = [];
 
   // Starts maintaining index.
   public use(index: IndexKeeper<T>): void {
     for (const value of this.objects.keys()) {
-      const key = index.computeKey(value);
-      index.prepareAdd(key, value);
-      index.add(key, value);
+      const keys = index.computeKey(value);
+      index.prepareAdd(keys, value);
+      index.add(keys, value);
     }
     // Now index is consistent with objects, safe to add to indices.
-    this.index.push(index);
+    this.indices.push(index);
   }
 
   /**
    * Add value to the container and all its indices.
    */
   public add(value: T): void {
-    const key = this.index.map((index) => index.computeKey(value));
-    for (let i = 0; i < this.index.length; i++) {
-      this.index[i].prepareAdd(key[i], value);
+    const keys = this.indices.map((index) => index.computeKey(value));
+    for (let i = 0; i < this.indices.length; i++) {
+      this.indices[i].prepareAdd(keys[i], value);
     }
-    for (let i = 0; i < this.index.length; i++) {
-      this.index[i].add(key[i], value);
+    for (let i = 0; i < this.indices.length; i++) {
+      this.indices[i].add(keys[i], value);
     }
     this.objects.add(value);
   }
@@ -154,12 +154,12 @@ export class Container<T> {
    * Remove value from the container and all its indices.
    */
   public delete(value: T) {
-    const key = this.index.map((index) => index.computeKey(value));
-    for (let i = 0; i < this.index.length; i++) {
-      this.index[i].prepareDelete(key[i], value);
+    const keys = this.indices.map((index) => index.computeKey(value));
+    for (let i = 0; i < this.indices.length; i++) {
+      this.indices[i].prepareDelete(keys[i], value);
     }
-    for (let i = 0; i < this.index.length; i++) {
-      this.index[i].delete(key[i], value);
+    for (let i = 0; i < this.indices.length; i++) {
+      this.indices[i].delete(keys[i], value);
     }
     this.objects.delete(value);
   }
