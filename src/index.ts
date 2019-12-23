@@ -1,3 +1,5 @@
+import { inspect } from 'util';
+
 export type Scalar = string | number; // TypeScript can't handle symbol keys,
                                       // Microsoft/TypeScript#1863
 
@@ -7,7 +9,13 @@ export abstract class IndexError extends Error {}
 
 export class NonuniqueIndexError<T, K> extends IndexError {
   constructor(public value: T, public key: K, public indexName?: string) {
-    super(`Nonunique key value ${key}${indexName ? `on index ${indexName}` : ''}`);
+    super(`Nonunique key value ${key}${indexName ? ` on index "${indexName}"` : ''}`);
+  }
+}
+
+export class MissingKeyError<T, K> extends IndexError {
+  constructor(public value: T, public key: K, public indexName?: string) {
+    super(`Missing key "${key}"${indexName ? ` on index "${indexName}"` : ''}`);
   }
 }
 
@@ -67,7 +75,7 @@ class UniqueIndex<T, K extends string | number> extends IndexKeeper<T> implement
   }
 
   public prepareDelete(key: K, value: T): void {
-    if (!this.access.has(key)) throw new Error(`Missing key ${key} for ${value}`);
+    if (!this.access.has(key)) throw new MissingKeyError(value, key, this.name);
   }
 
   public delete(key: K): void {
@@ -103,8 +111,8 @@ class NonuniqueIndex<T, K extends string | number> extends IndexKeeper<T> implem
 
   public prepareDelete(key: K, value: T): void {
     const values = this.access.get(key);
-    if (!values) throw new Error(`Missing key ${key} for ${value}`);
-    if (!values.has(value)) throw new Error(`Missing ${value} in elements for ${key}`);
+    if (!values) throw new MissingKeyError(value, key, this.name);
+    if (!values.has(value)) throw new Error(`Missing ${inspect(value)} in elements for ${key}`);
   }
 
   public delete(key: K, value: T): void {
@@ -154,6 +162,7 @@ export class Container<T> {
    * Remove value from the container and all its indices.
    */
   public delete(value: T) {
+    if (!this.objects.has(value)) return;
     const keys = this.indices.map((index) => index.computeKey(value));
     for (let i = 0; i < this.indices.length; i++) {
       this.indices[i].prepareDelete(keys[i], value);

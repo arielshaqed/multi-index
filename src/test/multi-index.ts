@@ -94,3 +94,11 @@ test('Indexes can fail to be added after-the-fact', (t) => {
   // element could not be added here!
   t.deepEqual(nie.value, { n: 3, s: 'a' });
 });
+
+test('Container deletes the right object', (t) => {
+  const container = new Container<Obj>();
+  const byNumber = uniqueIndex(({ n }: Obj) => n, 'by n').on(container);
+  container.add({ n: 1, s: 'a' });
+  container.delete({ n: 1, s: 'some completely different object' });
+  t.deepEqual(byNumber.get(1), { n: 1, s: 'a' });
+});
