@@ -1,187 +1,166 @@
-import * as R from 'ramda';
-
 export type Scalar = string | number; // TypeScript can't handle symbol keys,
                                       // Microsoft/TypeScript#1863
 
-export class NonuniqueIndexError extends Error {
-  constructor(public element: any, public key: Scalar, public indexName: string) {
-    super(`Nonunique key value ${key} on index ${indexName}`);
+type IndexReturnType<T, Unique extends boolean> = Unique extends true ? T : ReadonlySet<T>;
+
+export abstract class IndexError extends Error {}
+
+export class NonuniqueIndexError<T, K> extends IndexError {
+  constructor(public element: T, public key: K, public indexName?: string) {
+    super(`Nonunique key value ${key}${indexName ? `on index ${indexName}` : ''}`);
   }
 }
 
-export type ScalarTypeName = 'string' | 'number';
+// An index of type K on values T.
+export interface Index<T, K, Unique extends boolean> {
+  // Sets up to index container.
+  on(container: Container<T>): ReadonlyMap<K, IndexReturnType<T, Unique>>;
 
-export interface NumberIndexType<T> {
-  getter: (t: T) => number;
-  type: 'number';
+  // Readonly access to container through this index.
+  getAccess(): ReadonlyMap<K, IndexReturnType<T, Unique>>;
 }
 
-export interface StringIndexType<T> {
-  getter: (t: T) => string;
-  type?: 'string';        // (default).
+// Maintain index up-to-date with a container on values T.  For
+// TypeScriptish reasons cannot know the type K, but all keys are
+// opaque and round-tripped: implementor can rely on this.
+export abstract class IndexKeeper<T> {
+  public abstract computeKey(value: T): any;
+
+  // Throws an instance of IndexError if value cannot be added to the
+  // container.  On such failure that error is presented to the
+  // caller.  On return, an immediate call to add(value) *must*
+  // succeed.
+  public prepareAdd(_key: any, _value: T): void {}
+
+  // Indexes value.
+  public abstract add(key: any, value: T): void;
+
+  // Throws an Error (not necessarily an IndexError) if value cannot
+  // be deleted from container.  For debugging only; this is not
+  // guaranteed to be called.
+  public prepareDelete(_key: any, _value: T): void {}
+
+  // Deletes value.
+  public abstract delete(key: any, value: T): void;
 }
 
-export type IndexType<T> = {
-  // TODO(ariels): Add ordered, indexed, etc. index types
-  unique?: boolean;
-} & (NumberIndexType<T> | StringIndexType<T>);
+class UniqueIndex<T, K extends string | number> extends IndexKeeper<T> implements Index<T, K, true> {
+  protected access = new Map<K, T>();
 
-type UniqueMap<T> = Map<Scalar, T>;
-type MultiMap<T> = Map<Scalar, Set<T>>;
+  constructor(public computeKey: (value: T) => K, public name?: string) {
+    super();
+  }
 
-interface Access<T> {
-  access: UniqueMap<T> | MultiMap<T>;
+  public on(c: Container<T>) {
+    c.use(this);
+    return this.getAccess();
+  }
+
+  public getAccess(): ReadonlyMap<K, T> { return this.access; }
+
+  public prepareAdd(key: K, value: T): void {
+    if (this.access.has(key)) throw new NonuniqueIndexError(value, key, this.name);
+  }
+
+  public add(key: K, value: T): void {
+    this.access.set(key, value);
+  }
+
+  public prepareDelete(key: K, value: T): void {
+    if (!this.access.has(key)) throw new Error(`Missing key ${key} for ${value}`);
+  }
+
+  public delete(key: K): void {
+    this.access.delete(key);
+  }
 }
 
-type Index<T> = IndexType<T> & Access<T>;
+export function uniqueIndex<T, K extends string | number>(
+  computeKey: (value: T) => K, name?: string
+): Index<T, K, true> {
+  return new UniqueIndex(computeKey, name);
+}
 
-export class MultiIndex<T> {
-  private readonly objects = new Set<T>(); // TODO(ariels): for iteration
-  private readonly index: Map<string, Index<T>>;
-  public readonly access = {
-    // Keys: s/n string/number, 1/9 unique/nonunique
-    s1: new Map<string, Map<string, T>>(),
-    s9: new Map<string, Map<string, Set<T>>>(),
-    n1: new Map<string, Map<number, T>>(),
-    n9: new Map<string, Map<number, Set<T>>>(),
-  };
+class NonuniqueIndex<T, K extends string | number> extends IndexKeeper<T> implements Index<T, K, false> {
+  protected access = new Map<K, Set<T>>();
 
-  constructor(indexTypes: { [ik: string]: IndexType<T> }) {
-    this.index = new Map(Object.entries(
-      R.map(
-        (it) => ({
-          ...it,
-          type: it.type || 'string',
-          access: new Map(),
-        }),
-        indexTypes,
-      )));
-    for (const [k, i] of this.index.entries()) {
-      switch (i.type) {
-      case 'string': case undefined:
-        if (i.unique) {
-          this.access.s1.set(k, i.access as Map<string, T>);
-        } else {
-          this.access.s9.set(k, i.access as Map<string, Set<T>>);
-        }
-        break;
-      case 'number':
-        if (i.unique) {
-          this.access.n1.set(k, i.access as Map<number, T>);
-        } else {
-          this.access.n9.set(k, i.access as Map<number, Set<T>>);
-        }
-      }
+  constructor(public computeKey: (value: T) => K, public name?: string) {
+    super();
+  }
+
+  public on(c: Container<T>) {
+    c.use(this);
+    return this.getAccess();
+  }
+
+  public getAccess(): ReadonlyMap<K, ReadonlySet<T>> { return this.access; }
+
+  public add(key: K, value: T): void {
+    let values = this.access.get(key);
+    if (!values) this.access.set(key, values = new Set());
+    values.add(value);
+  }
+
+  public prepareDelete(key: K, value: T): void {
+    const values = this.access.get(key);
+    if (!values) throw new Error(`Missing key ${key} for ${value}`);
+    if (!values.has(value)) throw new Error(`Missing ${value} in elements for ${key}`);
+  }
+
+  public delete(key: K, value: T): void {
+    const values = this.access.get(key)!;
+    values.delete(value);
+    if (values.size === 0) this.access.delete(key);
+  }
+}
+
+export function nonuniqueIndex<T, K extends string | number>(
+  computeKey: (value: T) => K,
+  name?: string,
+): Index<T, K, false> {
+  return new NonuniqueIndex(computeKey, name);
+}
+
+export class Container<T> {
+  private readonly objects = new Set<T>();
+  private readonly index: Array<IndexKeeper<T>> = [];
+
+  // Starts maintaining index.
+  public use(index: IndexKeeper<T>): void {
+    for (const value of this.objects.keys()) {
+      const key = index.computeKey(value);
+      index.prepareAdd(key, value);
+      index.add(key, value);
     }
-  }
-
-  protected forEachIndex(fn: (index: Index<T>, ik: string) => any) {
-    this.index.forEach(
-      (index, ik) => {
-        if (typeof ik === 'number') return;
-        return fn(index, ik);
-      },
-    );
-  }
-
-  protected prepareToUpdate(o: T) {
-    this.forEachIndex(
-      (index, ik) => {
-        const k = index.getter(o);
-        if (index.unique && index.access.has(k)) {
-          throw new NonuniqueIndexError(o, k, ik);
-        }
-        if (!index.unique && !index.access.has(k)) (index.access as MultiMap<T>).set(k, new Set());
-      }
-    );
-  }
-
-  // TODO(ariels): Allow disabling this test.
-  protected checkConsistentIndices(o: T) {
-    this.forEachIndex(
-      (index, ik) => {
-        if (typeof ik === 'number') return;
-        const k = index.getter(o);
-        if (index.unique) {
-          if (!index.access.has(k)) {
-            throw new Error(`Internal: No key ${k} found on index ${ik}`);
-          }
-          if (!Object.is(index.access.get(k), o)) {
-            throw new Error(`Internal: Mismatched objects for key ${ik} on index ${ik}`);
-          }
-        } else {
-          if (!(index.access.has(k))) {
-            throw new Error(`Internal: No key ${k} found on index ${ik}`);
-          }
-          if (!(index.access.get(k) as Set<T>)!.has(o)) {
-            throw new Error(`Internal: Mismatched objects for key ${ik} on index ${ik}`);
-          }
-        }
-      }
-    );
+    // Now index is consistent with objects, safe to add to indices.
+    this.index.push(index);
   }
 
   /**
-   * Adds o to the index.  Throws if an object with the same index as
-   * o already appears in a unique field.
+   * Add value to the container and all its indices.
    */
-  public add(o: T) {
-    this.prepareToUpdate(o);
-
-    // Now o can safely be added to all indices (no overwrite is
-    // possible!)
-    this.forEachIndex((index) => {
-      const k = index.getter(o);
-      if (index.unique) {
-        (index.access as UniqueMap<T>).set(k, o);
-        return;
-      }
-      (index.access as MultiMap<T>).get(k)?.add(o);
-    });
-    
-    this.objects.add(o);
+  public add(value: T): void {
+    const key = this.index.map((index) => index.computeKey(value));
+    for (let i = 0; i < this.index.length; i++) {
+      this.index[i].prepareAdd(key[i], value);
+    }
+    for (let i = 0; i < this.index.length; i++) {
+      this.index[i].add(key[i], value);
+    }
+    this.objects.add(value);
   }
 
   /**
-   * Remove o from the index.
+   * Remove value from the container and all its indices.
    */
-  public delete(o: T) {
-    this.checkConsistentIndices(o);
-
-    this.forEachIndex((index) => {
-      const k = index.getter(o);
-      if (index.unique) {
-        index.access.delete(k);
-        return;
-      }
-      const s = index.access.get(k)! as Set<T>;
-      s!.delete(o);
-      if (s!.size === 0) index.access.delete(k);
-    });
-    this.objects.delete(o);
-  }
-
-  public by(ik: string, unique: true, typeName: 'string'): ReadonlyMap<string, T>;
-  public by(ik: string, unique: false, typeName: 'string'): ReadonlyMap<string, ReadonlySet<T>>;
-  public by(ik: string, unique: true, typeName: 'number'): ReadonlyMap<number, T>;
-  public by(ik: string, unique: false, typeName: 'number'): ReadonlyMap<number, ReadonlySet<T>>;
-
-  // Type-unsafe, but requires the least specification.
-  public by(
-    ik: string,
-    unique?: boolean,
-    typeName?: ScalarTypeName,
-  ): ReadonlyMap<Scalar, T> | ReadonlyMap<Scalar, ReadonlySet<T>>;
-
-  public by(ik: string, unique?: boolean, typeName?: ScalarTypeName): any {
-    if (!this.index.has(ik)) throw new Error(`Unknown index ${ik}`);
-    const index = this.index.get(ik)!;
-    if (unique !== undefined && unique !== index.unique) {
-      throw new Error(`Expected ${index.unique ? '' : 'non-'}-unique index ${ik}`);
+  public delete(value: T) {
+    const key = this.index.map((index) => index.computeKey(value));
+    for (let i = 0; i < this.index.length; i++) {
+      this.index[i].prepareDelete(key[i], value);
     }
-    if (typeName !== undefined && typeName !== index.type) {
-      throw new Error(`Expected ${typeName} index ${ik}`);
+    for (let i = 0; i < this.index.length; i++) {
+      this.index[i].delete(key[i], value);
     }
-    return index!.unique ? index!.access : index!.access;
+    this.objects.delete(value);
   }
 }
