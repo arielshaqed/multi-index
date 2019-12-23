@@ -19,6 +19,7 @@
     "url": "git+https://github.com/binaris/multi-index.git"
   },
   "keywords": [
+    "container",
     "multi_index",
     "multiple-indices",
     "indices",
