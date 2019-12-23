@@ -134,7 +134,7 @@ export class Container<T> {
   private readonly indices: Array<IndexKeeper<T>> = [];
 
   // Starts maintaining index.
-  public use(index: IndexKeeper<T>): void {
+  public use(index: IndexKeeper<T>): this {
     for (const value of this.objects.keys()) {
       const keys = index.computeKey(value);
       index.prepareAdd(keys, value);
@@ -142,12 +142,13 @@ export class Container<T> {
     }
     // Now index is consistent with objects, safe to add to indices.
     this.indices.push(index);
+    return this;
   }
 
   /**
    * Add value to the container and all its indices.
    */
-  public add(value: T): void {
+  public add(value: T): this {
     const keys = this.indices.map((index) => index.computeKey(value));
     for (let i = 0; i < this.indices.length; i++) {
       this.indices[i].prepareAdd(keys[i], value);
@@ -156,13 +157,15 @@ export class Container<T> {
       this.indices[i].add(keys[i], value);
     }
     this.objects.add(value);
+    return this;
   }
 
   /**
-   * Remove value from the container and all its indices.
+   * Remove value from the container and all its indices.  Returns
+   * true if the object was present and deleted.
    */
-  public delete(value: T) {
-    if (!this.objects.has(value)) return;
+  public delete(value: T): boolean {
+    if (!this.objects.has(value)) return false;
     const keys = this.indices.map((index) => index.computeKey(value));
     for (let i = 0; i < this.indices.length; i++) {
       this.indices[i].prepareDelete(keys[i], value);
@@ -170,6 +173,6 @@ export class Container<T> {
     for (let i = 0; i < this.indices.length; i++) {
       this.indices[i].delete(keys[i], value);
     }
-    this.objects.delete(value);
+    return this.objects.delete(value);
   }
 }

@@ -16,8 +16,7 @@ function make() {
 
 test('Container adds and looks up unique', (t) => {
   const { container, byNumber } = make();
-  container.add({ n: 1, s: 'a' });
-  container.add({ n: 2, s: 'b' });
+  container.add({ n: 1, s: 'a' }).add({ n: 2, s: 'b' });
   t.deepEqual(byNumber.get(1), { n: 1, s: 'a' });
   t.deepEqual(byNumber.get(2), { n: 2, s: 'b' });
 });
@@ -45,7 +44,7 @@ test('Container deletes on unique index', (t) => {
   const { container, byNumber, byString } = make();
   const a = { n: 1, s: 'a' };
   container.add(a);
-  container.delete(a);
+  t.true(container.delete(a));
   t.is(byNumber.get(1), undefined);
   t.is(byString.get('a'), undefined);
   container.add({ n: 1, s: 'b' });
@@ -59,7 +58,7 @@ test('Container deletes on nonunique index', (t) => {
   container.add(a);
   const b = { n: 2, s: 'a' };
   container.add(b);
-  container.delete(a);
+  t.true(container.delete(a));
   t.is(byNumber.get(1), undefined);
   t.deepEqual(byNumber.get(2), b);
   t.deepEqual(byString.get('a'), new Set([b]));
@@ -99,6 +98,6 @@ test('Container deletes the right object', (t) => {
   const container = new Container<Obj>();
   const byNumber = uniqueIndex(({ n }: Obj) => n, 'by n').on(container);
   container.add({ n: 1, s: 'a' });
-  container.delete({ n: 1, s: 'some completely different object' });
+  t.false(container.delete({ n: 1, s: 'some completely different object' }));
   t.deepEqual(byNumber.get(1), { n: 1, s: 'a' });
 });
