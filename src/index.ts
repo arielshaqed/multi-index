@@ -6,7 +6,7 @@ type IndexReturnType<T, Unique extends boolean> = Unique extends true ? T : Read
 export abstract class IndexError extends Error {}
 
 export class NonuniqueIndexError<T, K> extends IndexError {
-  constructor(public value: T, public key: K, public indexName?: string) {
+  constructor(public element: T, public key: K, public indexName?: string) {
     super(`Nonunique key value ${key}${indexName ? `on index ${indexName}` : ''}`);
   }
 }
