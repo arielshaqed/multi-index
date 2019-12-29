@@ -1,4 +1,5 @@
 [![Build status](https://github.com/binaris/multi-index/workflows/Node%20CI/badge.svg)](https://github.com/binaris/multi-index/actions)
+[![Coverage Status](https://coveralls.io/repos/github/binaris/multi-index/badge.svg?branch=cover)](https://coveralls.io/github/binaris/multi-index?branch=cover)
 
 # Multi-Index: Containers with more than one index
 
