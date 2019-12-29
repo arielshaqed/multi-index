@@ -12,7 +12,13 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "ava dist/test/**.js"
+    "test": "ava dist/test/**.js",
+    "coverage": "nyc npm run test"
+  },
+  "nyc": {
+    "all": true,
+    "exclude": ["**/test/**"],
+    "reporter": ["text", "html", "lcov"]
   },
   "repository": {
     "type": "git",
@@ -35,6 +41,7 @@
   "dependencies": {},
   "devDependencies": {
     "ava": "^2.4.0",
+    "nyc": "^15.0.0",
     "typescript": "^3.7.3"
   }
 }
