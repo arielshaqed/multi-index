@@ -34,7 +34,7 @@ test('Container refuses to overwrite value in unique index', (t) => {
   container.add({ n: 1, s: 'a' });
   const nie: NonuniqueIndexError<Obj, number> = t.throws(
     () => container.add({ n: 1, s: 'b' }),
-    NonuniqueIndexError,
+    { instanceOf: NonuniqueIndexError },
   );
   t.assert(nie.key === 1);
   t.deepEqual(nie.value, { n: 1, s: 'b' });
@@ -85,7 +85,7 @@ test('Indexes can fail to be added after-the-fact', (t) => {
   container.add({ n: 3, s: 'a' });
   const nie: NonuniqueIndexError<Obj, number> = t.throws(
     () => uniqueIndex(({ n }: Obj) => n % 2, 'by n even').on(container),
-    NonuniqueIndexError
+    { instanceOf: NonuniqueIndexError },
   );
   t.assert(nie.key === 1);
   // This relied on implementation: objects Set in actual
