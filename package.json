@@ -28,7 +28,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/binaris/multi-index.git"
+    "url": "git+https://github.com/arielshaqed/multi-index.git"
   },
   "keywords": [
     "container",
@@ -42,7 +42,7 @@
   "author": "Ariel Shaqed (Scolnicov)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/binaris/multi-index/issues"
+    "url": "https://github.com/arielshaqed/multi-index/issues"
   },
   "dependencies": {},
   "devDependencies": {
