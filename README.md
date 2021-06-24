@@ -60,8 +60,8 @@ const byNickname = nonuniqueIndex({ nickname }: Contact => nickname, 'by nicknam
 
 Or in JavaScript, just don't add types to the functions:
 ```js
-const byId = uniqueIndex({ id } => id, 'by id').on(c);
-const byNickname = nonuniqueIndex({ nickname } => nickname, 'by nickname').on(c);
+const byId = uniqueIndex((v) => v.id, 'by id').on(c);
+const byNickname = nonuniqueIndex((v) => v.nickname, 'by nickname').on(c);
 ```
 
 Unique indices won't let you add the same element twice:
